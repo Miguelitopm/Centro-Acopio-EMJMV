@@ -1,0 +1,80 @@
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-background: #fbf9f6;
+  --color-on-background: #1b1c1a;
+  --color-surface: #fbf9f6;
+  --color-surface-dim: #dbdad7;
+  --color-surface-bright: #fbf9f6;
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #f5f3f0;
+  --color-surface-container: #efeeeb;
+  --color-surface-container-high: #eae8e5;
+  --color-surface-container-highest: #e4e2df;
+  --color-on-surface: #1b1c1a;
+  --color-on-surface-variant: #4e453e;
+  --color-outline: #80756d;
+  --color-outline-variant: #d2c4bb;
+  
+  --color-primary: #322214;
+  --color-on-primary: #ffffff;
+  --color-primary-container: #4a3728;
+  --color-on-primary-container: #bba08c;
+  --color-primary-fixed: #fbddc7;
+  --color-primary-fixed-dim: #dec1ac;
+  --color-on-primary-fixed: #28180b;
+
+  --color-secondary: #8e4d2f;
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #ffaa85;
+  --color-on-secondary-container: #793c1f;
+  --color-secondary-fixed: #ffdbcd;
+  --color-secondary-fixed-dim: #ffb596;
+  
+  --color-error: #ba1a1a;
+  --color-on-error: #ffffff;
+  
+  --font-sans: 'Hanken Grotesk', sans-serif;
+  --font-serif: ui-serif, Georgia, Cambria, "Times New Roman", Times, serif;
+
+  --radius-sm: 0.25rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.5rem;
+}
+
+body {
+  font-family: var(--font-sans);
+  background-color: var(--color-background);
+  color: var(--color-on-background);
+}
+
+.material-symbols-outlined {
+  font-family: 'Material Symbols Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+}
+
+.bg-pattern {
+  background-color: #fbf9f6;
+  background-image: radial-gradient(#e4e2df 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+.soft-border {
+  border: 1px solid rgba(210, 196, 187, 0.3);
+}
+.ambient-shadow-card {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
