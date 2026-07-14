@@ -1,3 +1,4 @@
+import React from 'react';
 import { isSupabaseConfigured } from '../lib/supabase';
 import { AlertCircle, Database } from 'lucide-react';
 

@@ -48,8 +48,8 @@ export default function ProcesarEntregaModal({ solicitud, isOpen, onClose, onCon
               <div className="space-y-4">
                 {insumos.map((insumo) => (
                   <div key={insumo.id} className="border border-gray-200 rounded-xl p-4">
-                    <div className="flex justify-between items-start gap-4 mb-3">
-                      <div className="flex-1">
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-3">
+                      <div className="flex-1 w-full">
                         <span className="text-[10px] font-bold text-gray-400 uppercase">{insumo.categoria}</span>
                         {insumo.categoria === 'EXTRA / EMERGENCIA' ? (
                           <input type="text" value={insumo.descripcion} onChange={(e) => setInsumos((prev) => prev.map((i) => i.id === insumo.id ? { ...i, descripcion: e.target.value } : i))}
@@ -58,7 +58,7 @@ export default function ProcesarEntregaModal({ solicitud, isOpen, onClose, onCon
                           <p className="font-semibold text-gray-900">{insumo.descripcion}</p>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 shrink-0">
                         <span className="text-xs text-gray-500">Armado: <strong>{insumo.cantidad_armada ?? insumo.cantidad_solicitada}</strong></span>
                         {insumo.categoria === 'EXTRA / EMERGENCIA' && (
                           <button onClick={() => setInsumos((prev) => prev.filter((i) => i.id !== insumo.id))} className="p-1.5 text-red-500 hover:bg-red-50 rounded-lg"><Trash2 className="w-4 h-4" /></button>

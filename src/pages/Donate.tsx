@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import images1Url from '../assets/images.png';
+import { HeartHandshake, MapPin, ArrowLeft } from 'lucide-react';
+import logoVargasUrl from '../assets/logo_vargas.png';
 
 export default function Donate() {
   return (
@@ -8,7 +9,7 @@ export default function Donate() {
       <div className="absolute inset-0 pointer-events-none opacity-20 flex items-center justify-center -z-10 overflow-hidden">
         <div 
           className="w-full h-[600px] bg-no-repeat bg-center bg-contain" 
-          style={{ backgroundImage: `url(${images1Url})` }}
+          style={{ backgroundImage: `url(${logoVargasUrl})` }}
         />
       </div>
 
@@ -16,7 +17,7 @@ export default function Donate() {
         
         <div className="flex flex-col items-center mb-8 gap-2">
           <div className="flex items-center gap-3 text-primary font-serif font-bold text-2xl md:text-3xl tracking-widest uppercase text-center">
-            <span className="material-symbols-outlined text-secondary text-3xl" style={{ fontVariationSettings: '"FILL" 1' }}>volunteer_activism</span>
+            <HeartHandshake className="text-secondary w-8 h-8" fill="currentColor" />
             ¿Quieres Donar?
           </div>
           <p className="text-on-surface-variant text-lg md:text-xl font-serif italic max-w-2xl text-center">
@@ -93,7 +94,7 @@ export default function Donate() {
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-2 text-on-primary bg-primary hover:bg-primary-container px-6 py-3 rounded-full transition-colors uppercase text-sm font-bold tracking-wider shadow-md hover:shadow-lg"
               >
-                <span className="material-symbols-outlined text-xl">location_on</span>
+                <MapPin className="w-5 h-5" />
                 Ver en Google Maps
               </a>
             </div>
@@ -111,7 +112,7 @@ export default function Donate() {
           </h4>
           
           <Link to="/" className="inline-flex items-center text-secondary hover:text-primary text-sm font-bold uppercase tracking-widest transition-colors mt-4">
-            <span className="material-symbols-outlined mr-2 text-sm">arrow_back</span>
+            <ArrowLeft className="mr-2 w-4 h-4" />
             Volver al Inicio
           </Link>
         </div>

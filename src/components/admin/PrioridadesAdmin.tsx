@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Save, Loader2, AlertCircle } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Save, Loader2, AlertCircle, ChevronUp, ChevronDown, Pencil, X } from 'lucide-react';
+import { motion, LayoutGroup } from 'motion/react';
 import { requireSupabase } from '../../lib/supabase';
 import type { Prioridad } from '../../types/database';
 import PrioridadRow from './PrioridadRow';
@@ -52,14 +53,17 @@ export default function PrioridadesAdmin() {
     setSuccess(false);
     try {
       const client = requireSupabase();
-      for (let i = 0; i < items.length; i++) {
-        const item = items[i];
-        const { error: updateError } = await client
-          .from('inventario_prioridades')
-          .update({ orden: i + 1, texto: item.texto, updated_at: new Date().toISOString() })
-          .eq('id', item.id);
-        if (updateError) throw updateError;
-      }
+      // Upsert en lote: 1 única petición HTTP en lugar de N peticiones secuenciales
+      const updates = items.map((item, i) => ({
+        id: item.id,
+        orden: i + 1,
+        texto: item.texto,
+        updated_at: new Date().toISOString(),
+      }));
+      const { error: updateError } = await client
+        .from('inventario_prioridades')
+        .upsert(updates);
+      if (updateError) throw updateError;
       setDirty(false);
       setSuccess(true);
       setTimeout(() => setSuccess(false), 3000);
@@ -89,7 +93,84 @@ export default function PrioridadesAdmin() {
       </div>
       {error && <div className="mb-4 bg-error/10 border border-error/30 rounded-lg p-3 text-error text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4 shrink-0" />{error}</div>}
       {success && <div className="mb-4 bg-green-100 border border-green-300 rounded-lg p-3 text-green-800 text-sm">Cambios guardados. La web pública se actualizará automáticamente.</div>}
-      <div className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden ambient-shadow-card">
+      {/* Vista Móvil y Tablet (Tarjetas) */}
+      <LayoutGroup id="mobile-priorities">
+        <div className="md:hidden space-y-4">
+          {items.map((item, index) => (
+            <motion.div
+              key={item.id}
+              layout
+              transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+              className="bg-surface-container-lowest rounded-xl border border-outline-variant/30 p-4 sm:p-5 ambient-shadow-card flex flex-col gap-3"
+            >
+              <div className="flex items-center justify-between border-b border-outline-variant/20 pb-2">
+                <span className="font-bold text-primary text-sm">Prioridad #{index + 1}</span>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleMove(index, 'up')}
+                    disabled={index === 0}
+                    className="p-2 rounded-lg bg-surface-container hover:bg-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Subir"
+                  >
+                    <ChevronUp className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => handleMove(index, 'down')}
+                    disabled={index === items.length - 1}
+                    className="p-2 rounded-lg bg-surface-container hover:bg-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed"
+                    title="Bajar"
+                  >
+                    <ChevronDown className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+              <div>
+                {editingId === item.id ? (
+                  <input
+                    type="text"
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    className="w-full border border-outline-variant/50 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    autoFocus
+                  />
+                ) : (
+                  <p className="font-medium text-on-surface text-sm sm:text-base">{item.texto}</p>
+                )}
+              </div>
+              <div className="flex justify-end gap-2 pt-2 border-t border-outline-variant/10">
+                {editingId === item.id ? (
+                  <>
+                    <button
+                      onClick={handleSaveEdit}
+                      className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-primary-container text-on-primary hover:opacity-90 text-xs font-bold uppercase tracking-wider flex-1 sm:flex-initial"
+                      title="Guardar"
+                    >
+                      <Save className="w-3.5 h-3.5" /> Guardar
+                    </button>
+                    <button
+                      onClick={() => { setEditingId(null); setEditText(''); }}
+                      className="flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-surface-container text-on-surface-variant hover:bg-surface-container-high text-xs font-bold uppercase tracking-wider flex-1 sm:flex-initial"
+                      title="Cancelar"
+                    >
+                      <X className="w-3.5 h-3.5" /> Cancelar
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    onClick={() => { setEditingId(item.id); setEditText(item.texto); }}
+                    className="flex items-center justify-center gap-1.5 px-4 py-2.5 rounded-lg bg-secondary/10 text-secondary hover:bg-secondary/20 text-xs font-bold uppercase tracking-wider w-full"
+                  >
+                    <Pencil className="w-3.5 h-3.5" /> Editar Texto
+                  </button>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </div>
+      </LayoutGroup>
+
+      {/* Vista Desktop (Tabla) */}
+      <div className="hidden md:block bg-surface-container-lowest rounded-xl border border-outline-variant/30 overflow-hidden ambient-shadow-card">
         <table className="w-full text-left">
           <thead className="bg-surface-container text-on-surface-variant text-xs font-bold uppercase tracking-wider">
             <tr>
@@ -99,15 +180,17 @@ export default function PrioridadesAdmin() {
               <th className="px-4 py-3 text-center w-28">Orden</th>
             </tr>
           </thead>
-          <tbody>
-            {items.map((item, index) => (
-              <PrioridadRow key={item.id} item={item} index={index} total={items.length}
-                isEditing={editingId === item.id} editText={editText} onEditTextChange={setEditText}
-                onStartEdit={() => { setEditingId(item.id); setEditText(item.texto); }}
-                onCancelEdit={() => { setEditingId(null); setEditText(''); }}
-                onSaveEdit={handleSaveEdit} onMoveUp={() => handleMove(index, 'up')} onMoveDown={() => handleMove(index, 'down')} />
-            ))}
-          </tbody>
+          <LayoutGroup id="desktop-priorities">
+            <tbody>
+              {items.map((item, index) => (
+                <PrioridadRow key={item.id} item={item} index={index} total={items.length}
+                  isEditing={editingId === item.id} editText={editText} onEditTextChange={setEditText}
+                  onStartEdit={() => { setEditingId(item.id); setEditText(item.texto); }}
+                  onCancelEdit={() => { setEditingId(null); setEditText(''); }}
+                  onSaveEdit={handleSaveEdit} onMoveUp={() => handleMove(index, 'up')} onMoveDown={() => handleMove(index, 'down')} />
+              ))}
+            </tbody>
+          </LayoutGroup>
         </table>
       </div>
       <div className="mt-6 flex justify-end">

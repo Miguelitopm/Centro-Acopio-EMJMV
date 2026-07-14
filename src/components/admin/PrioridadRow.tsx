@@ -1,4 +1,6 @@
+import React from 'react';
 import { ChevronUp, ChevronDown, Pencil, Save, X } from 'lucide-react';
+import { motion } from 'motion/react';
 import type { Prioridad } from '../../types/database';
 
 interface PrioridadRowProps {
@@ -13,6 +15,7 @@ interface PrioridadRowProps {
   onSaveEdit: () => void;
   onMoveUp: () => void;
   onMoveDown: () => void;
+  key?: React.Key;
 }
 
 export default function PrioridadRow({
@@ -20,7 +23,11 @@ export default function PrioridadRow({
   onStartEdit, onCancelEdit, onSaveEdit, onMoveUp, onMoveDown,
 }: PrioridadRowProps) {
   return (
-    <tr className="border-b border-outline-variant/30 hover:bg-surface-container-low/50 transition-colors">
+    <motion.tr
+      layout
+      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      className="border-b border-outline-variant/30 hover:bg-surface-container-low/50 transition-colors"
+    >
       <td className="px-4 py-3 text-center font-bold text-primary w-12">{index + 1}</td>
       <td className="px-4 py-3">
         {isEditing ? (
@@ -50,6 +57,6 @@ export default function PrioridadRow({
           <button onClick={onMoveDown} disabled={index === total - 1} className="p-2 rounded-lg bg-surface-container hover:bg-surface-container-high disabled:opacity-30 disabled:cursor-not-allowed" title="Bajar"><ChevronDown className="w-4 h-4" /></button>
         </div>
       </td>
-    </tr>
+    </motion.tr>
   );
 }

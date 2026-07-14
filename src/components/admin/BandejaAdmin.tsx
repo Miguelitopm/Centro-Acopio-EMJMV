@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Search, Package, Truck, Loader2, AlertCircle, Archive } from 'lucide-react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { Search, Package, Truck, Loader2, AlertCircle, Archive, Clock } from 'lucide-react';
 import { requireSupabase } from '../../lib/supabase';
 import type { Solicitud, InsumoItem } from '../../types/database';
 import EstadoBadge, { getRowBorderClass } from './EstadoBadge';
 import ArmarPedidoModal from './ArmarPedidoModal';
 import ProcesarEntregaModal from './ProcesarEntregaModal';
+import DetallePedidoModal from './DetallePedidoModal';
 
 function formatFecha(fecha: string) {
   return new Date(fecha).toLocaleString('es-VE', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
@@ -15,15 +16,33 @@ function formatInsumos(insumos: InsumoItem[]) {
   return insumos.map((i) => `${i.descripcion} (${i.cantidad_solicitada})`).join(', ');
 }
 
+const TAB_CONFIG = {
+  pendiente: {
+    active: 'border-red-500 text-red-600 bg-red-50/50',
+    inactive: 'border-transparent text-on-surface-variant hover:text-red-600 hover:bg-red-50/20',
+    icon: Clock,
+  },
+  armado: {
+    active: 'border-yellow-600 text-yellow-700 bg-yellow-50/50',
+    inactive: 'border-transparent text-on-surface-variant hover:text-yellow-600 hover:bg-yellow-50/20',
+    icon: Package,
+  },
+  entregado: {
+    active: 'border-green-600 text-green-600 bg-green-50/50',
+    inactive: 'border-transparent text-on-surface-variant hover:text-green-600 hover:bg-green-50/20',
+    icon: Truck,
+  },
+};
+
 export default function BandejaAdmin() {
   const [solicitudes, setSolicitudes] = useState<Solicitud[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeSearch, setActiveSearch] = useState('');
-  const [showArchivados, setShowArchivados] = useState(false);
+  const [activeTab, setActiveTab] = useState<'pendiente' | 'armado' | 'entregado'>('pendiente');
   const [armarModal, setArmarModal] = useState<Solicitud | null>(null);
   const [entregaModal, setEntregaModal] = useState<Solicitud | null>(null);
+  const [detalleModal, setDetalleModal] = useState<Solicitud | null>(null);
 
   const fetchSolicitudes = useCallback(async () => {
     try {
@@ -45,19 +64,33 @@ export default function BandejaAdmin() {
     return () => { requireSupabase().removeChannel(channel); };
   }, [fetchSolicitudes]);
 
-  const handleSearch = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    setActiveSearch(searchQuery.trim());
-  };
+  // Auto-switch tab based on live search results
+  useEffect(() => {
+    const q = searchQuery.trim().toLowerCase().replace('#', '');
+    if (!q) return;
+    const match = solicitudes.find((s) =>
+      s.ticket_number.toLowerCase().includes(q) ||
+      s.nombre_solicitante.toLowerCase().includes(q) ||
+      s.cedula_solicitante.toLowerCase().includes(q) ||
+      s.nombre_contacto.toLowerCase().includes(q) ||
+      s.cedula_contacto.toLowerCase().includes(q) ||
+      s.telefono_contacto.includes(q)
+    );
+    if (match && match.estado !== activeTab) setActiveTab(match.estado);
+  }, [searchQuery, solicitudes]);
 
   const filtered = solicitudes.filter((s) => {
-    if (!showArchivados && s.archivado) return false;
-    if (showArchivados && !s.archivado) return false;
-    if (!activeSearch) return true;
-    const q = activeSearch.toLowerCase().replace('#', '');
-    return s.ticket_number.toLowerCase().includes(q) || s.nombre_solicitante.toLowerCase().includes(q) ||
-      s.cedula_solicitante.toLowerCase().includes(q) || s.nombre_contacto.toLowerCase().includes(q) ||
-      s.cedula_contacto.toLowerCase().includes(q) || s.telefono_contacto.includes(q);
+    if (s.estado !== activeTab) return false;
+    const q = searchQuery.trim().toLowerCase().replace('#', '');
+    if (!q) return true;
+    return (
+      s.ticket_number.toLowerCase().includes(q) ||
+      s.nombre_solicitante.toLowerCase().includes(q) ||
+      s.cedula_solicitante.toLowerCase().includes(q) ||
+      s.nombre_contacto.toLowerCase().includes(q) ||
+      s.cedula_contacto.toLowerCase().includes(q) ||
+      s.telefono_contacto.includes(q)
+    );
   });
 
   const handleArmar = async (insumosArmados: InsumoItem[]) => {
@@ -85,38 +118,68 @@ export default function BandejaAdmin() {
         <p className="text-on-surface-variant text-sm mt-1">Pendiente → Armado → Entregado</p>
       </div>
 
-      <form onSubmit={handleSearch} className="mb-6 bg-primary-container rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row gap-3 ambient-shadow-card">
+      <div className="flex items-center mb-6 bg-primary-container rounded-2xl p-4 sm:p-6">
         <div className="flex-1 relative">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-on-primary/60" />
-          <input type="text" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Buscar por ticket (#TK-1042), nombre, cédula o teléfono..."
-            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/10 border border-white/20 text-on-primary placeholder:text-on-primary/50 focus:outline-none focus:ring-2 focus:ring-white/30 text-sm" />
+            className="w-full pl-12 pr-4 py-3.5 rounded-xl bg-white/10 border border-white/20 text-on-primary placeholder:text-on-primary/50 focus:outline-none focus:ring-2 focus:ring-white/30 text-sm"
+          />
         </div>
-        <button type="submit" className="px-8 py-3.5 bg-white text-primary-container rounded-xl font-bold uppercase tracking-widest text-sm shadow-md">Buscar</button>
-        {activeSearch && (
-          <button type="button" onClick={() => { setSearchQuery(''); setActiveSearch(''); }}
-            className="px-6 py-3.5 bg-white/10 text-on-primary rounded-xl font-bold uppercase text-xs">Limpiar</button>
+        {searchQuery && (
+          <button
+            type="button"
+            onClick={() => setSearchQuery('')}
+            className="ml-4 px-6 py-3.5 bg-white/10 text-on-primary rounded-xl font-bold uppercase text-xs"
+          >
+            Limpiar
+          </button>
         )}
-      </form>
+      </div>
 
-      <div className="flex items-center gap-4 mb-4">
-        <button onClick={() => setShowArchivados(false)} className={`text-sm font-bold uppercase px-4 py-2 rounded-full ${!showArchivados ? 'bg-primary-container text-on-primary' : 'bg-surface-container text-on-surface-variant'}`}>Activas</button>
-        <button onClick={() => setShowArchivados(true)} className={`flex items-center gap-2 text-sm font-bold uppercase px-4 py-2 rounded-full ${showArchivados ? 'bg-green-600 text-white' : 'bg-surface-container text-on-surface-variant'}`}>
-          <Archive className="w-4 h-4" /> Archivadas
-        </button>
+      <div className="grid grid-cols-3 border-b border-outline-variant/30 gap-1 sm:gap-2 mb-6 bg-surface-container-low/30 p-1 rounded-xl">
+        {(['pendiente', 'armado', 'entregado'] as const).map((tab) => {
+          const config = TAB_CONFIG[tab];
+          const Icon = config.icon;
+          const isActive = activeTab === tab;
+          return (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`flex items-center justify-center gap-1.5 sm:gap-2 px-2 py-3 rounded-lg font-bold uppercase tracking-wider text-[10px] sm:text-xs md:text-sm border-b-2 transition-all ${
+                isActive ? config.active : config.inactive
+              }`}
+            >
+              <Icon className="w-4 h-4 shrink-0" />
+              <span>
+                {tab === 'pendiente' && 'Pendientes'}
+                {tab === 'armado' && 'Armados'}
+                {tab === 'entregado' && 'Entregados'}
+              </span>
+            </button>
+          );
+        })}
       </div>
 
       {error && <div className="mb-4 bg-error/10 border border-error/30 rounded-lg p-3 text-error text-sm flex items-center gap-2"><AlertCircle className="w-4 h-4" />{error}</div>}
 
       {filtered.length === 0 ? (
         <div className="bg-surface-container-lowest rounded-xl border p-12 text-center text-on-surface-variant">
-          {activeSearch ? `No se encontraron solicitudes para "${activeSearch}"` : showArchivados ? 'No hay solicitudes archivadas' : 'No hay solicitudes pendientes o en proceso'}
+          {searchQuery ? `No se encontraron solicitudes para "${searchQuery}"` : `No hay solicitudes en estado ${activeTab}`}
         </div>
       ) : (
         <div className="space-y-4">
           {filtered.map((s) => (
-            <div key={s.id} className={`bg-surface-container-lowest rounded-xl border p-4 sm:p-6 ambient-shadow-card ${getRowBorderClass(s.estado)}`}>
-              <div className="flex flex-col lg:flex-row lg:items-start justify-between gap-4">
+            <div
+              id={`solicitud-${s.id}`}
+              key={s.id}
+              onClick={() => setDetalleModal(s)}
+              className={`bg-surface-container-lowest hover:bg-surface-container/30 cursor-pointer transition-colors duration-200 rounded-xl border p-4 sm:p-6 ambient-shadow-card ${getRowBorderClass(s.estado)}`}
+            >
+              <div className="flex flex-col md:flex-row md:items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
                   <div className="flex flex-wrap items-center gap-3 mb-3">
                     <span className="font-mono font-bold text-lg text-primary">#{s.ticket_number}</span>
@@ -131,7 +194,7 @@ export default function BandejaAdmin() {
                     <div className="sm:col-span-2"><span className="text-on-surface-variant">Insumos: </span><span className="font-medium">{formatInsumos(s.insumos_solicitados)}</span></div>
                   </div>
                 </div>
-                <div className="flex flex-col gap-2 shrink-0">
+                <div className="flex flex-col gap-2 shrink-0" onClick={(e) => e.stopPropagation()}>
                   {s.estado === 'pendiente' && (
                     <button onClick={() => setArmarModal(s)} className="flex items-center justify-center gap-2 px-6 py-3 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold uppercase text-xs tracking-widest shadow-md">
                       <Package className="w-4 h-4" /> Armar Pedido
@@ -151,6 +214,7 @@ export default function BandejaAdmin() {
 
       <ArmarPedidoModal solicitud={armarModal} isOpen={!!armarModal} onClose={() => setArmarModal(null)} onConfirm={handleArmar} />
       <ProcesarEntregaModal solicitud={entregaModal} isOpen={!!entregaModal} onClose={() => setEntregaModal(null)} onConfirm={handleEntrega} />
+      <DetallePedidoModal solicitud={detalleModal} isOpen={!!detalleModal} onClose={() => setDetalleModal(null)} />
     </div>
   );
 }

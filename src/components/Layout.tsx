@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import fondoUrl from '../assets/fondo.jpg';
@@ -6,17 +6,26 @@ import logoUrl from '../assets/logo_vargas.png';
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
+
+  // Aplica el fondo directamente al elemento <html> (raíz del scroll).
+  // Es la única forma de que NO se mueva en iOS/Android con el rebote elástico.
+  useEffect(() => {
+    const html = document.documentElement;
+    html.style.backgroundImage = `url(${fondoUrl})`;
+    html.style.backgroundSize = 'cover';
+    html.style.backgroundPosition = 'center';
+    html.style.backgroundRepeat = 'no-repeat';
+    html.style.backgroundAttachment = 'fixed';
+    return () => {
+      html.style.backgroundImage = '';
+      html.style.backgroundSize = '';
+      html.style.backgroundPosition = '';
+      html.style.backgroundRepeat = '';
+      html.style.backgroundAttachment = '';
+    };
+  }, []);
   return (
     <div className="bg-pattern min-h-screen text-on-background font-sans flex flex-col relative overflow-x-hidden">
-      <div 
-        className="fixed inset-0 z-0 pointer-events-none opacity-[0.3]" 
-        style={{ 
-          backgroundImage: `url(${fondoUrl})`, 
-          backgroundSize: 'cover', 
-          backgroundPosition: 'center', 
-          backgroundAttachment: 'fixed'
-        }} 
-      />
       
       {/* TopAppBar */}
       <header className="bg-surface-container-lowest/90 backdrop-blur-md w-full z-50 border-b soft-border">

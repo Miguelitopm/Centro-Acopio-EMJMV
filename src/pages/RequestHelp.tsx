@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { X, ArrowLeft } from 'lucide-react';
 import TicketModal from '../components/TicketModal';
 import { requireSupabase, isSupabaseConfigured } from '../lib/supabase';
 import { flattenNeedItems } from '../lib/insumos';
@@ -11,14 +12,16 @@ export default function RequestHelp() {
   const [selectedNeeds, setSelectedNeeds] = useState<string[]>([]);
   const [cedulaSolicitante, setCedulaSolicitante] = useState('');
   const [cedulaContacto, setCedulaContacto] = useState('');
-  
+  const [telefonoContacto, setTelefonoContacto] = useState('+58 ');
+  const [telefonoContactoAlt, setTelefonoContactoAlt] = useState('+58 ');
+
   interface NeedItem {
     id: string;
     description: string;
     quantity: string;
   }
   const [needItems, setNeedItems] = useState<Record<string, NeedItem[]>>({});
-  
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ticketStatus, setTicketStatus] = useState<'preview' | 'success'>('preview');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,38 +93,106 @@ export default function RequestHelp() {
 
   const handleCedulaChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) => {
     let val = e.target.value.toUpperCase();
-    
+
     if (val.length > 0 && !['V', 'E'].includes(val[0])) {
       return;
     }
 
     val = val.replace(/-/g, '');
-    
+
     if (val.length > 1) {
       val = val.substring(0, 1) + '-' + val.substring(1);
     }
-    
+
     if (val.length > 2) {
       const digits = val.substring(2);
       if (!/^\d*$/.test(digits)) {
         return;
       }
     }
-    
+
     if (val.length <= 11) {
       setter(val);
     }
   };
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>, setter: React.Dispatch<React.SetStateAction<string>>) => {
+    let raw = e.target.value;
+
+    // If user erased past the "+" prefix, restore it
+    if (!raw.startsWith('+')) {
+      raw = '+' + raw.replace(/[^\d]/g, '');
+    }
+
+    // Strip everything except digits and the leading "+"
+    const plusPrefix = raw.startsWith('+') ? '+' : '';
+    const digitsOnly = raw.replace(/[^\d]/g, '');
+
+    // Split into country code (first digits before space) and local number
+    // Allow up to 4 digits for country code, then 10 digits for local
+    // Format: +CC NNN NNN-NNNN
+    let countryCode = '';
+    let localDigits = '';
+
+    if (digitsOnly.length <= 4) {
+      // Still typing country code
+      countryCode = digitsOnly;
+    } else {
+      // Find where country code ends: we assume country code is whatever
+      // was before the first space in the original, or default 2 digits (58)
+      // We'll parse from the original to determine country code length
+      const withoutPlus = raw.replace(/^\+/, '');
+      const spaceIdx = withoutPlus.indexOf(' ');
+      
+      if (spaceIdx > 0) {
+        const ccPart = withoutPlus.substring(0, spaceIdx).replace(/[^\d]/g, '');
+        countryCode = ccPart;
+        localDigits = digitsOnly.substring(countryCode.length);
+      } else {
+        // Default: assume 2-digit country code (like 58)
+        countryCode = digitsOnly.substring(0, 2);
+        localDigits = digitsOnly.substring(2);
+      }
+    }
+
+    // Limit local digits to exactly 10 (NNN NNN NNNN)
+    localDigits = localDigits.substring(0, 10);
+
+    // Build formatted string
+    let formatted = plusPrefix + countryCode;
+    if (localDigits.length > 0) {
+      formatted += ' ' + localDigits.substring(0, 3);
+    }
+    if (localDigits.length > 3) {
+      formatted += ' ' + localDigits.substring(3, 6);
+    }
+    if (localDigits.length > 6) {
+      formatted += '-' + localDigits.substring(6, 10);
+    }
+
+    setter(formatted);
+  };
+
+  const isPhoneValid = (phone: string): boolean => {
+    // Valid format: +CC NNN NNN-NNNN (10 local digits)
+    const stripped = phone.replace(/[^\d]/g, '');
+    // Country code (2-4 digits) + 10 local digits = 12-14 total digits
+    // We check local digits specifically
+    const plusPrefix = phone.startsWith('+') ? '+' : '';
+    const withoutPlus = phone.replace(/^\+/, '');
+    const spaceIdx = withoutPlus.indexOf(' ');
+    if (spaceIdx <= 0) return false;
+    const localPart = withoutPlus.substring(spaceIdx).replace(/[^\d]/g, '');
+    return localPart.length === 10;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const nombreSolicitante = (document.getElementById('nombre_solicitante') as HTMLInputElement).value;
     const correoSolicitante = (document.getElementById('correo_solicitante') as HTMLInputElement).value;
     const nombreContacto = (document.getElementById('nombre_contacto') as HTMLInputElement).value;
-    const telefonoContacto = (document.getElementById('telefono') as HTMLInputElement).value;
     const correoContacto = (document.getElementById('correo_contacto') as HTMLInputElement).value;
-    const telefonoContactoAlt = (document.getElementById('telefono_alt') as HTMLInputElement).value;
     const nombreInstitucion = tipoSolicitante === 'institucion' ? (document.getElementById('nombre_institucion') as HTMLInputElement)?.value : undefined;
     const beneficiarios = (document.getElementById('beneficiarios') as HTMLInputElement)?.value || '';
     const direccion = tipoEnvio === 'delivery' ? (document.getElementById('direccion') as HTMLTextAreaElement)?.value : undefined;
@@ -135,7 +206,7 @@ export default function RequestHelp() {
       cedulaContacto,
       telefonoContacto,
       correoContacto,
-      telefonoContactoAlt,
+      telefonoContactoAlt: telefonoContactoAlt === '+58 ' ? '' : telefonoContactoAlt,
       tipoSolicitante,
       nombreInstitucion,
       needItems,
@@ -143,7 +214,7 @@ export default function RequestHelp() {
       tipoEnvio,
       direccion
     });
-    
+
     setTicketStatus('preview');
     setIsModalOpen(true);
   };
@@ -180,30 +251,32 @@ export default function RequestHelp() {
       }
       setTicketData((prev: typeof ticketData) => ({ ...prev, ticketNumber }));
       setTicketStatus('success');
-    } catch (err) {
-      setSubmitError(err instanceof Error ? err.message : 'Error al enviar la solicitud');
+    } catch (err: any) {
+      console.error('Submission error:', err);
+      const errorMsg = err?.message || err?.error_description || (typeof err === 'string' ? err : 'Error desconocido al enviar la solicitud');
+      setSubmitError(errorMsg);
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
-    
+
     // Only reset form if we are closing from the success state
     if (ticketStatus === 'success') {
       setNeedItems({});
       setCedulaSolicitante('');
       setCedulaContacto('');
+      setTelefonoContacto('+58 ');
+      setTelefonoContactoAlt('+58 ');
       setSelectedNeeds([]);
       setTipoSolicitante('');
       setTipoEnvio('');
       (document.getElementById('nombre_solicitante') as HTMLInputElement).value = '';
       (document.getElementById('correo_solicitante') as HTMLInputElement).value = '';
       (document.getElementById('nombre_contacto') as HTMLInputElement).value = '';
-      (document.getElementById('telefono') as HTMLInputElement).value = '';
       (document.getElementById('correo_contacto') as HTMLInputElement).value = '';
-      (document.getElementById('telefono_alt') as HTMLInputElement).value = '';
       const form = document.querySelector('form');
       if (form) form.reset();
     }
@@ -211,56 +284,56 @@ export default function RequestHelp() {
 
   return (
     <div className="w-full max-w-3xl bg-surface-container-lowest rounded-3xl p-6 md:p-12 shadow-sm border border-outline-variant/30 mt-4">
-      
+
       {/* Alert Banner */}
       <div className="bg-surface-container text-on-surface-variant text-base p-5 rounded-2xl mb-10 border-l-2 border-primary font-medium">
         Por favor, rellena el formulario para solicitar tu ayuda <strong className="text-primary font-bold">lo más rápido posible</strong>. Asegúrate de que tus datos de contacto sean correctos.
       </div>
 
       <form className="space-y-10" onSubmit={handleSubmit}>
-        
+
         {/* Date/Time & Solicitante Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10 mb-2 border-b-2 border-outline-variant/60">
           <div>
             <label htmlFor="fecha" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* FECHA / HORA</label>
-            <input 
-              type="text" 
-              id="fecha" 
-              readOnly 
+            <input
+              type="text"
+              id="fecha"
+              readOnly
               value={currentDateTime}
-              className="w-full bg-surface-container/50 border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium" 
+              className="w-full bg-surface-container/50 border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
             />
           </div>
           <div>
             <label htmlFor="nombre_solicitante" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* NOMBRE COMPLETO SOLICITANTE</label>
-            <input 
-              type="text" 
-              id="nombre_solicitante" 
-              required 
-              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium" 
+            <input
+              type="text"
+              id="nombre_solicitante"
+              required
+              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
             />
           </div>
           <div>
             <label htmlFor="cedula_solicitante" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* CÉDULA SOLICITANTE</label>
-            <input 
-              type="text" 
-              id="cedula_solicitante" 
-              required 
+            <input
+              type="text"
+              id="cedula_solicitante"
+              required
               value={cedulaSolicitante}
               onChange={(e) => handleCedulaChange(e, setCedulaSolicitante)}
               placeholder="Ej: V123456"
               minLength={8}
               maxLength={11}
-              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium" 
+              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
             />
           </div>
           <div>
             <label htmlFor="correo_solicitante" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* CORREO ELECTRÓNICO SOLICITANTE</label>
-            <input 
-              type="email" 
-              id="correo_solicitante" 
-              required 
-              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium" 
+            <input
+              type="email"
+              id="correo_solicitante"
+              required
+              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
             />
           </div>
         </div>
@@ -268,54 +341,58 @@ export default function RequestHelp() {
         {/* Contact Info */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pb-10 mb-2 border-b-2 border-outline-variant/60">
           <div className="md:col-span-2">
-            <label htmlFor="nombre_contacto" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* NOMBRE COMPLETO CONTACTO (PERSONA QUE RECIBE LA AYUDA)</label>
-            <input 
-              type="text" 
-              id="nombre_contacto" 
-              required 
-              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium" 
+            <label htmlFor="nombre_contacto" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* NOMBRE COMPLETO CONTACTO (PERSONA QUE RETIRA LA AYUDA)</label>
+            <input
+              type="text"
+              id="nombre_contacto"
+              required
+              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
             />
           </div>
           <div>
             <label htmlFor="cedula" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* CÉDULA CONTACTO</label>
-            <input 
-              type="text" 
-              id="cedula" 
-              required 
+            <input
+              type="text"
+              id="cedula"
+              required
               value={cedulaContacto}
               onChange={(e) => handleCedulaChange(e, setCedulaContacto)}
               placeholder="Ej: V123456"
               minLength={8}
               maxLength={11}
-              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium" 
+              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
             />
           </div>
           <div>
             <label htmlFor="telefono" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* TELÉFONO CONTACTO</label>
-            <input 
-              type="tel" 
-              id="telefono" 
-              placeholder="+58 412 0000000" 
-              required 
-              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium" 
+            <input
+              type="tel"
+              id="telefono"
+              placeholder="+58 000 000-0000"
+              required
+              value={telefonoContacto}
+              onChange={(e) => handlePhoneChange(e, setTelefonoContacto)}
+              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
             />
           </div>
           <div>
             <label htmlFor="correo_contacto" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* CORREO ELECTRÓNICO CONTACTO</label>
-            <input 
-              type="email" 
-              id="correo_contacto" 
-              required 
-              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium" 
+            <input
+              type="email"
+              id="correo_contacto"
+              required
+              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
             />
           </div>
           <div>
             <label htmlFor="telefono_alt" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">TELÉFONO CONTACTO ALTERNATIVO (OPCIONAL)</label>
-            <input 
-              type="tel" 
-              id="telefono_alt" 
-              placeholder="+58 412 0000000" 
-              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium" 
+            <input
+              type="tel"
+              id="telefono_alt"
+              placeholder="+58 000 000-0000"
+              value={telefonoContactoAlt}
+              onChange={(e) => handlePhoneChange(e, setTelefonoContactoAlt)}
+              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
             />
           </div>
         </div>
@@ -324,9 +401,9 @@ export default function RequestHelp() {
         <div className="pb-8 border-b border-outline-variant/20 space-y-6">
           <div>
             <label htmlFor="tipo_solicitante" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* TIPO DE SOLICITANTE</label>
-            <select 
-              id="tipo_solicitante" 
-              required 
+            <select
+              id="tipo_solicitante"
+              required
               value={tipoSolicitante}
               onChange={(e) => setTipoSolicitante(e.target.value)}
               className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all appearance-none font-medium"
@@ -339,11 +416,11 @@ export default function RequestHelp() {
           {tipoSolicitante === 'institucion' && (
             <div>
               <label htmlFor="nombre_institucion" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* NOMBRE DE LA INSTITUCIÓN</label>
-              <input 
-                type="text" 
-                id="nombre_institucion" 
-                required 
-                className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium" 
+              <input
+                type="text"
+                id="nombre_institucion"
+                required
+                className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
               />
             </div>
           )}
@@ -355,11 +432,11 @@ export default function RequestHelp() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-y-5 gap-x-8">
             {needsList.map((need, idx) => (
               <label key={idx} className="flex items-center space-x-3 text-on-primary text-base cursor-pointer group">
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={selectedNeeds.includes(need)}
                   onChange={() => handleNeedChange(need)}
-                  className="w-4 h-4 rounded-sm border-on-primary/40 bg-transparent text-primary-container focus:ring-2 focus:ring-white transition-colors cursor-pointer" 
+                  className="w-4 h-4 rounded-sm border-on-primary/40 bg-transparent text-primary-container focus:ring-2 focus:ring-white transition-colors cursor-pointer"
                 />
                 <span className="group-hover:text-white transition-colors font-medium text-sm uppercase tracking-wider">{need}</span>
               </label>
@@ -373,7 +450,7 @@ export default function RequestHelp() {
             {selectedNeeds.map((need, idx) => (
               <div key={idx} className="bg-red-50/50 border border-red-100 p-4 sm:p-6 rounded-lg">
                 <label className="block text-[#a02020] text-xs sm:text-sm font-bold tracking-widest uppercase mb-4">* {need}</label>
-                
+
                 <div className="overflow-hidden border border-outline-variant/30 rounded-md bg-surface-container-lowest">
                   <table className="w-full text-left border-collapse table-fixed">
                     <thead className="bg-[#f0f4f8] border-b border-outline-variant/30 text-[9px] sm:text-xs text-[#4a6b8c] font-bold uppercase tracking-tight sm:tracking-wider">
@@ -387,8 +464,8 @@ export default function RequestHelp() {
                       {needItems[need]?.map((item) => (
                         <tr key={item.id} className="hover:bg-surface-container-lowest transition-colors">
                           <td className="border-r border-outline-variant/30 p-0">
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               value={item.description}
                               onChange={(e) => handleItemChange(need, item.id, 'description', e.target.value)}
                               placeholder="Ej: Detalles"
@@ -396,8 +473,8 @@ export default function RequestHelp() {
                             />
                           </td>
                           <td className="border-r border-outline-variant/30 p-0">
-                            <input 
-                              type="text" 
+                            <input
+                              type="text"
                               value={item.quantity}
                               onChange={(e) => handleItemChange(need, item.id, 'quantity', e.target.value)}
                               placeholder="Ej: 2 cajas"
@@ -411,7 +488,7 @@ export default function RequestHelp() {
                               className="bg-[#e74c3c] hover:bg-[#c0392b] text-white p-1 sm:p-2 rounded transition-colors inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 focus:outline-none focus:ring-2 focus:ring-offset-1 focus:ring-[#e74c3c]"
                               title="Eliminar fila"
                             >
-                              <span className="material-symbols-outlined text-[10px] sm:text-sm">close</span>
+                              <X className="w-3 h-3 sm:w-4 sm:h-4" />
                             </button>
                           </td>
                         </tr>
@@ -438,35 +515,35 @@ export default function RequestHelp() {
         <div className="grid grid-cols-1 gap-8 pb-8 border-b border-outline-variant/20">
           <div>
             <label htmlFor="beneficiarios" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">CUANTAS PERSONAS SE BENEFICIARÁN CON ESTA AYUDA? (APROX.)</label>
-            <input 
-              type="number" 
-              id="beneficiarios" 
+            <input
+              type="number"
+              id="beneficiarios"
               min="1"
-              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium" 
+              className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all font-medium"
             />
           </div>
           <div>
             <label htmlFor="tipo_envio" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* TIPO DE ENVÍO</label>
-            <select 
-              id="tipo_envio" 
-              required 
+            <select
+              id="tipo_envio"
+              required
               value={tipoEnvio}
               onChange={(e) => setTipoEnvio(e.target.value)}
               className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-full px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all appearance-none font-medium"
             >
               <option value="">Seleccione el tipo de envío...</option>
               <option value="retiro">Retiro en Centro</option>
-              <option value="delivery">Envío a Domicilio</option>
+              <option value="delivery" disabled style={{ color: '#999' }}>Envío a Domicilio (Próximamente)</option>
             </select>
           </div>
           {tipoEnvio === 'delivery' && (
             <div>
               <label htmlFor="direccion" className="block text-secondary text-xs font-bold tracking-widest uppercase mb-2">* DIRECCIÓN DE ENTREGA</label>
-              <textarea 
-                id="direccion" 
+              <textarea
+                id="direccion"
                 rows={2}
-                required 
-                className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-3xl px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all resize-y font-medium" 
+                required
+                className="w-full bg-surface-container-lowest border border-outline-variant/40 rounded-3xl px-5 py-3 text-on-surface text-base focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary transition-all resize-y font-medium"
               ></textarea>
             </div>
           )}
@@ -474,11 +551,11 @@ export default function RequestHelp() {
 
         {/* Terms Checkbox */}
         <div className="bg-surface-container/50 p-6 rounded-3xl flex items-start space-x-4 mt-10">
-          <input 
-            type="checkbox" 
-            id="terminos" 
-            required 
-            className="w-4 h-4 rounded-sm border-outline/30 mt-1 text-primary focus:ring-1 focus:ring-primary transition-colors" 
+          <input
+            type="checkbox"
+            id="terminos"
+            required
+            className="w-4 h-4 rounded-sm border-outline/30 mt-1 text-primary focus:ring-1 focus:ring-primary transition-colors"
           />
           <label htmlFor="terminos" className="text-on-surface-variant text-sm font-medium leading-relaxed">
             Al seleccionar, aceptas que se utilice y se comparta tus datos con nuestros colaboradores de confianza para mejorar tu experiencia y cumplir el objetivo de ayuda humanitaria.
@@ -490,7 +567,7 @@ export default function RequestHelp() {
           <button type="reset" className="w-full sm:w-auto px-12 py-3.5 bg-surface-container hover:bg-surface-container-high text-on-surface-variant rounded-full text-sm font-bold uppercase tracking-widest transition-all duration-200">
             Limpiar
           </button>
-          <button formNoValidate type="submit" className="w-full sm:w-auto px-12 py-3.5 bg-primary-container hover:bg-primary-container/90 text-on-primary rounded-full text-sm font-bold uppercase tracking-widest transition-all duration-200 shadow-none">
+          <button type="submit" className="w-full sm:w-auto px-12 py-3.5 bg-primary-container hover:bg-primary-container/90 text-on-primary rounded-full text-sm font-bold uppercase tracking-widest transition-all duration-200 shadow-none">
             Enviar Solicitud
           </button>
         </div>
@@ -499,16 +576,16 @@ export default function RequestHelp() {
       {/* Bottom Link */}
       <div className="mt-12 text-center border-t border-outline-variant/20 pt-8">
         <Link to="/" className="inline-flex items-center text-secondary hover:text-primary text-sm font-bold uppercase tracking-widest transition-colors">
-          <span className="material-symbols-outlined mr-2 text-sm">arrow_back</span>
+          <ArrowLeft className="mr-2 w-4 h-4" />
           Volver al Inicio
         </Link>
       </div>
 
-      <TicketModal 
-        isOpen={isModalOpen} 
-        onClose={handleCloseModal} 
+      <TicketModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
         onConfirm={handleConfirm}
-        data={ticketData} 
+        data={ticketData}
         status={ticketStatus}
         isSubmitting={isSubmitting}
         submitError={submitError}

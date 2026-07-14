@@ -6,10 +6,12 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- FUNCIÓN 1: Prioridades
 CREATE TABLE IF NOT EXISTS inventario_prioridades (
   id SERIAL PRIMARY KEY,
-  orden INTEGER NOT NULL UNIQUE CHECK (orden >= 1 AND orden <= 10),
+  orden INTEGER NOT NULL,
   texto TEXT NOT NULL,
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
+
+ALTER TABLE inventario_prioridades DROP CONSTRAINT IF EXISTS inventario_prioridades_orden_key;
 
 INSERT INTO inventario_prioridades (orden, texto) VALUES
   (1, 'Alimentos No Perecederos'),

@@ -12,8 +12,8 @@ export default function EstadoBadge({ estado }: { estado: EstadoSolicitud }) {
 }
 
 export function getRowBorderClass(estado: EstadoSolicitud): string {
-  if (estado === 'pendiente') return 'border-l-4 border-l-red-500';
-  if (estado === 'armado') return 'border-l-4 border-l-yellow-500';
-  if (estado === 'entregado') return 'border-l-4 border-l-green-500';
+  if (estado === 'pendiente') return 'border-l-4 border-l-red-500 bg-red-50/10 hover:bg-red-50/20 border-red-100/50';
+  if (estado === 'armado') return 'border-l-4 border-l-yellow-500 bg-yellow-50/15 hover:bg-yellow-50/30 border-yellow-100/50';
+  if (estado === 'entregado') return 'border-l-4 border-l-green-500 bg-green-50/10 hover:bg-green-50/20 border-green-100/50';
   return '';
 }

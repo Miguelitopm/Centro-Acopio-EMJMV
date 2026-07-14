@@ -1,5 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:ital,wght@0,100..900;1,100..900&display=swap');
-@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+/* Hanken Grotesk se carga en index.html via <link> para evitar render-blocking */
 @import "tailwindcss";
 
 @theme {
@@ -45,30 +44,33 @@
   --radius-xl: 1.5rem;
 }
 
+html {
+  overscroll-behavior: none;
+  min-height: 100%;
+}
+
+/* Pseudo-elemento para controlar opacidad del fondo sin afectar el contenido */
+html::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background: rgba(251, 249, 246, 0.72); /* mismo color que --color-background con opacidad */
+  pointer-events: none;
+  z-index: 0;
+}
+
 body {
   font-family: var(--font-sans);
-  background-color: var(--color-background);
+  background-color: transparent; /* transparente para que se vea la imagen del <html> */
   color: var(--color-on-background);
+  overscroll-behavior: none;
+  min-height: 100%;
 }
 
-.material-symbols-outlined {
-  font-family: 'Material Symbols Outlined';
-  font-weight: normal;
-  font-style: normal;
-  font-size: 24px;
-  line-height: 1;
-  letter-spacing: normal;
-  text-transform: none;
-  display: inline-block;
-  white-space: nowrap;
-  word-wrap: normal;
-  direction: ltr;
-  -webkit-font-feature-settings: 'liga';
-  -webkit-font-smoothing: antialiased;
-}
+/* Iconos Material Symbols reemplazados por lucide-react (SVG, sin descarga de fuente externa) */
 
 .bg-pattern {
-  background-color: #fbf9f6;
+  background-color: transparent; /* transparente para que se vea la imagen del <html> */
   background-image: radial-gradient(#e4e2df 1px, transparent 1px);
   background-size: 24px 24px;
 }
