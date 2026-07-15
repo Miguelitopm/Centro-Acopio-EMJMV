@@ -16,8 +16,15 @@ export default function ArmarPedidoModal({ solicitud, isOpen, onClose, onConfirm
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    if (isOpen && solicitud) setInsumos(initArmadoFromSolicitados(solicitud.insumos_solicitados));
-    else setInsumos([]);
+    if (isOpen && solicitud) {
+      if (solicitud.insumos_armados && solicitud.insumos_armados.length > 0) {
+        setInsumos(solicitud.insumos_armados);
+      } else {
+        setInsumos(initArmadoFromSolicitados(solicitud.insumos_solicitados));
+      }
+    } else {
+      setInsumos([]);
+    }
   }, [isOpen, solicitud]);
 
   const handleConfirm = async () => {

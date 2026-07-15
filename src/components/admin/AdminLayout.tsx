@@ -9,7 +9,14 @@ export default function AdminLayout() {
   useEffect(() => {
     const prevTitle = document.title;
     document.title = 'Panel Administrativo de Acopio | Escuela de Medicina Vargas';
-    return () => { document.title = prevTitle; };
+    
+    // Añadimos clase para quitar el fondo e imagen de la web publica en el panel administrativo
+    document.documentElement.classList.add('admin-page');
+    
+    return () => { 
+      document.title = prevTitle; 
+      document.documentElement.classList.remove('admin-page');
+    };
   }, []);
   const tabs = [
     { path: '/admin/prioridades', label: 'Función 1: Prioridades', icon: ListOrdered, short: 'Prioridades' },

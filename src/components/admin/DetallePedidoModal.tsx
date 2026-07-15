@@ -105,9 +105,134 @@ export default function DetallePedidoModal({ solicitud, isOpen, onClose }: Detal
               </button>
             </div>
 
+            {/* Contenedor oculto para la descarga (Formato Carta / Escritorio) */}
+            <div style={{ position: 'absolute', left: '-9999px', top: '0', width: '800px', pointerEvents: 'none' }}>
+              <div ref={invoiceRef} className="bg-white p-8 border border-gray-100 rounded-lg w-full font-sans text-gray-800">
+                {/* Decorative top row for invoice ticket look */}
+                <div className="h-3 bg-gray-100 w-full flex space-x-1.5 overflow-hidden px-1 pt-1 rounded-t-lg">
+                  {Array.from({ length: 30 }).map((_, i) => (
+                    <div key={i} className="w-3 h-3 rounded-full bg-white -mt-1.5" />
+                  ))}
+                </div>
+
+                <div className="p-6 bg-gray-50/50 border-x border-b border-gray-100 rounded-b-lg">
+                  {/* Title & Badge */}
+                  <div className="flex justify-between items-center gap-4 pb-6 border-b border-dashed border-gray-300">
+                    <div className="flex items-center gap-4">
+                      <img src={logoUrl} alt="Logo" className="w-14 h-14 object-contain" />
+                      <div>
+                        <h2 className="text-lg font-black text-gray-900 uppercase tracking-tight">
+                          Centro de Acopio y Distribución
+                        </h2>
+                        <p className="text-xs text-gray-500 font-semibold tracking-wide uppercase mt-0.5">
+                          Escuela de Medicina Vargas
+                        </p>
+                        <p className="text-[10px] text-gray-400 font-mono mt-1.5">
+                          FECHA: {formatFecha(solicitud.fecha_hora)}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5">
+                      <span className="font-sans font-bold text-base text-primary bg-primary/10 px-3 py-1 rounded-lg border border-primary/20 mr-2 whitespace-nowrap">
+                        #{solicitud.ticket_number}
+                      </span>
+                      <EstadoBadge estado={solicitud.estado} />
+                    </div>
+                  </div>
+
+                  {/* Two Column details (Forced 2 columns for download render) */}
+                  <div className="grid grid-cols-2 gap-6 my-6 text-sm">
+                    {/* Column 1: Solicitante */}
+                    <div className="space-y-2 border-r border-gray-200 pr-4 last:border-r-0">
+                      <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest pb-1 border-b border-dashed border-gray-200 mb-2">
+                        Datos del Solicitante
+                      </h3>
+                      <div className="flex justify-between py-1 border-b border-gray-100/50"><span className="text-gray-500">Nombre:</span><span className="font-semibold text-gray-900 text-right">{solicitud.nombre_solicitante}</span></div>
+                      <div className="flex justify-between py-1 border-b border-gray-100/50"><span className="text-gray-500">Cédula:</span><span className="font-medium text-gray-900 text-right">{solicitud.cedula_solicitante}</span></div>
+                      <div className="flex justify-between py-1 border-b border-gray-100/50"><span className="text-gray-500">Correo:</span><span className="font-medium text-gray-900 text-right break-all max-w-[200px]">{solicitud.correo_solicitante}</span></div>
+                      <div className="flex justify-between py-1 border-b border-gray-100/50"><span className="text-gray-500">Tipo:</span><span className="font-medium text-gray-900 text-right uppercase">{solicitud.tipo_solicitante === 'persona' ? 'Persona Natural' : 'Institución'}</span></div>
+                      {solicitud.nombre_institucion && (
+                        <div className="flex justify-between py-1 border-b border-gray-100/50"><span className="text-gray-500">Institución:</span><span className="font-medium text-gray-900 text-right">{solicitud.nombre_institucion}</span></div>
+                      )}
+                      {solicitud.beneficiarios && (
+                        <div className="flex justify-between py-1 border-b border-gray-100/50"><span className="text-gray-500">Beneficiarios:</span><span className="font-medium text-gray-900 text-right">{solicitud.beneficiarios} personas</span></div>
+                      )}
+                    </div>
+
+                    {/* Column 2: Contacto y Envio */}
+                    <div className="space-y-2">
+                      <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest pb-1 border-b border-dashed border-gray-200 mb-2">
+                        Datos de Contacto y Envío
+                      </h3>
+                      <div className="flex justify-between py-1 border-b border-gray-100/50"><span className="text-gray-500">Contacto:</span><span className="font-semibold text-gray-900 text-right">{solicitud.nombre_contacto}</span></div>
+                      <div className="flex justify-between py-1 border-b border-gray-100/50"><span className="text-gray-500">Cédula Contacto:</span><span className="font-medium text-gray-900 text-right">{solicitud.cedula_contacto}</span></div>
+                      <div className="flex justify-between py-1 border-b border-gray-100/50"><span className="text-gray-500">Teléfono:</span><span className="font-medium text-gray-900 text-right">{solicitud.telefono_contacto}</span></div>
+                      {solicitud.telefono_contacto_alt && (
+                        <div className="flex justify-between py-1 border-b border-gray-100/50"><span className="text-gray-500">Teléfono Alt:</span><span className="font-medium text-gray-900 text-right">{solicitud.telefono_contacto_alt}</span></div>
+                      )}
+                      <div className="flex justify-between py-1 border-b border-gray-100/50"><span className="text-gray-500">Correo Contacto:</span><span className="font-medium text-gray-900 text-right break-all max-w-[200px]">{solicitud.correo_contacto}</span></div>
+                      <div className="flex justify-between items-center py-1 border-b border-gray-100/50">
+                        <span className="text-gray-500">Método de Envío:</span>
+                        <span className="font-bold text-gray-900 uppercase bg-gray-200/80 px-2.5 py-0.5 rounded text-xs whitespace-nowrap">
+                          {solicitud.tipo_envio === 'retiro' ? 'Retiro en Centro' : 'Delivery'}
+                        </span>
+                      </div>
+                      {solicitud.tipo_envio === 'delivery' && solicitud.direccion && (
+                        <div className="flex flex-col py-1"><span className="text-gray-500">Dirección:</span><span className="font-medium text-gray-900 leading-tight mt-1">{solicitud.direccion}</span></div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Items list */}
+                  <div className="mt-8">
+                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest pb-2 border-b-2 border-dashed border-gray-300 mb-4">
+                      Detalle de Insumos Entregados / Solicitados
+                    </h3>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-left text-sm border-collapse">
+                        <thead>
+                          <tr className="border-b border-gray-300 text-xs font-bold text-gray-500 uppercase">
+                            <th className="py-2 pr-4">Categoría</th>
+                            <th className="py-2 pr-4">Descripción</th>
+                            <th className="py-2 px-2 text-center">Cant. Solicitada</th>
+                            <th className="py-2 pl-2 text-center bg-green-50/50">
+                              {solicitud.estado === 'entregado' ? 'Cant. Entregada' : (solicitud.estado === 'armado' ? 'Cant. Armada' : 'Cant. Entregada')}
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-200">
+                          {((solicitud.estado === 'entregado' ? solicitud.insumos_entregados : (solicitud.estado === 'armado' ? solicitud.insumos_armados : solicitud.insumos_solicitados)) || []).map((item, idx) => {
+                            const val = solicitud.estado === 'entregado' ? item.cantidad_entregada : (solicitud.estado === 'armado' ? item.cantidad_armada : '-');
+
+                            return (
+                              <tr key={item.id || idx} className="hover:bg-gray-50/30">
+                                <td className="py-3 pr-4 font-medium text-gray-700">{item.categoria}</td>
+                                <td className="py-3 pr-4 text-gray-900">{item.descripcion}</td>
+                                <td className="py-3 px-2 text-center font-mono text-gray-900">{item.cantidad_solicitada}</td>
+                                <td className="py-3 pl-2 text-center font-mono text-green-800 bg-green-50/30 font-bold">
+                                  {val || '-'}
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+
+                  {/* Bottom decorative border */}
+                  <div className="h-3 bg-gray-100 w-full flex space-x-1.5 overflow-hidden px-1 pb-1 rounded-b-lg mt-8 rotate-180">
+                    {Array.from({ length: 30 }).map((_, i) => (
+                      <div key={i} className="w-3 h-3 rounded-full bg-white -mt-1.5" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
             {/* Scrollable Area */}
             <div className="overflow-y-auto flex-1 no-scrollbar p-6 print:overflow-visible print:p-0">
-              <div ref={invoiceRef} className="bg-white p-6 sm:p-8 border border-gray-100 rounded-xl print:border-none print:p-0">
+              <div className="bg-white p-6 sm:p-8 border border-gray-100 rounded-xl print:border-none print:p-0">
                 {/* Decorative top row for invoice ticket look */}
                 <div className="h-3 bg-gray-100 w-full flex space-x-1.5 overflow-hidden px-1 pt-1 rounded-t-lg print:hidden">
                   {Array.from({ length: 30 }).map((_, i) => (
@@ -195,12 +320,14 @@ export default function DetallePedidoModal({ solicitud, isOpen, onClose }: Detal
                             <th className="py-2 pr-4">Categoría</th>
                             <th className="py-2 pr-4">Descripción</th>
                             <th className="py-2 px-2 text-center">Cant. Solicitada</th>
-                            <th className="py-2 pl-2 text-center bg-green-50/50 print:bg-transparent">Cant. Entregada</th>
+                            <th className="py-2 pl-2 text-center bg-green-50/50 print:bg-transparent">
+                              {solicitud.estado === 'entregado' ? 'Cant. Entregada' : (solicitud.estado === 'armado' ? 'Cant. Armada' : 'Cant. Entregada')}
+                            </th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-200">
-                          {solicitud.insumos_solicitados.map((item, idx) => {
-                            const entregado = solicitud.insumos_entregados?.find(e => e.id === item.id) || solicitud.insumos_entregados?.[idx];
+                          {((solicitud.estado === 'entregado' ? solicitud.insumos_entregados : (solicitud.estado === 'armado' ? solicitud.insumos_armados : solicitud.insumos_solicitados)) || []).map((item, idx) => {
+                            const val = solicitud.estado === 'entregado' ? item.cantidad_entregada : (solicitud.estado === 'armado' ? item.cantidad_armada : '-');
 
                             return (
                               <tr key={item.id || idx} className="hover:bg-gray-50/30">
@@ -208,7 +335,7 @@ export default function DetallePedidoModal({ solicitud, isOpen, onClose }: Detal
                                 <td className="py-3 pr-4 text-gray-900">{item.descripcion}</td>
                                 <td className="py-3 px-2 text-center font-mono text-gray-900">{item.cantidad_solicitada}</td>
                                 <td className="py-3 pl-2 text-center font-mono text-green-800 bg-green-50/30 print:bg-transparent font-bold">
-                                  {entregado?.cantidad_entregada || item.cantidad_entregada || '-'}
+                                  {val || '-'}
                                 </td>
                               </tr>
                             );

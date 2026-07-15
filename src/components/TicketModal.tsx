@@ -42,12 +42,19 @@ interface TicketModalProps {
 
 export default function TicketModal({ isOpen, onClose, onConfirm, data, status, isSubmitting, submitError }: TicketModalProps) {
   const ticketRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    if (status === 'success' && scrollRef.current) {
+      scrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+  }, [status]);
 
   useEffect(() => {
     if (isOpen) {
@@ -158,9 +165,9 @@ export default function TicketModal({ isOpen, onClose, onConfirm, data, status, 
                 )}
 
                 {/* Letter Body: Two column layout for details */}
-                <div className={status === 'preview' ? "grid grid-cols-1 gap-6 my-6 text-sm" : "grid grid-cols-1 md:grid-cols-2 gap-6 my-6 text-sm"}>
+                <div className={status === 'preview' ? "grid grid-cols-1 gap-6 my-6 text-sm" : "grid grid-cols-2 gap-6 my-6 text-sm"}>
                   {/* Column 1: Solicitante */}
-                  <div className="space-y-2 md:border-r md:border-gray-200 md:pr-6">
+                  <div className="space-y-2 border-r border-gray-200 pr-6">
                     <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest pb-1 border-b border-dashed border-gray-200 mb-2">
                       Datos del Solicitante
                     </h3>
@@ -283,7 +290,7 @@ export default function TicketModal({ isOpen, onClose, onConfirm, data, status, 
             </div>
 
             {/* Vista en pantalla estilo Ticket de Recibo Térmico */}
-            <div className="overflow-y-auto no-scrollbar flex-1 p-4">
+            <div ref={scrollRef} className="overflow-y-auto no-scrollbar flex-1 p-4">
               <div className="bg-white rounded-2xl shadow-sm border border-gray-200/50 w-full overflow-hidden text-gray-800 font-sans">
                 {/* Sprocket holes top */}
                 <div className="flex justify-center items-center gap-2 px-2 py-2 select-none pointer-events-none overflow-hidden bg-white">
@@ -296,7 +303,17 @@ export default function TicketModal({ isOpen, onClose, onConfirm, data, status, 
                 <div className="px-6 pb-6 pt-4 flex flex-col items-center">
                   {/* Status Circle & Title */}
                   {status === 'success' ? (
-                    <>
+                    <motion.div
+                      key="success-animation"
+                      initial={{ scale: 0.3, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
+                      transition={{
+                        type: "spring",
+                        stiffness: 260,
+                        damping: 20
+                      }}
+                      className="flex flex-col items-center w-full"
+                    >
                       <div className="w-16 h-16 bg-green-100/80 border border-green-200/50 rounded-full flex items-center justify-center mb-4">
                         <CheckCircle2 className="w-8 h-8 text-green-600" />
                       </div>
@@ -310,7 +327,7 @@ export default function TicketModal({ isOpen, onClose, onConfirm, data, status, 
                       <div className="bg-[#ecfdf5] border border-[#a7f3d0] text-[#065f46] text-xs font-semibold p-4 rounded-2xl text-center leading-relaxed my-3 max-w-xs">
                         En cuanto esté lista la solicitud nos comunicaremos con la persona de contacto.
                       </div>
-                    </>
+                    </motion.div>
                   ) : (
                     <>
                       <div className="w-16 h-16 bg-yellow-100/80 border border-yellow-200/50 rounded-full flex items-center justify-center mb-4">

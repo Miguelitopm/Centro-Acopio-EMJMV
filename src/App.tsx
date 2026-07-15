@@ -9,12 +9,11 @@ import Layout from './components/Layout';
 import AdminLayout from './components/admin/AdminLayout';
 import SupabaseGuard from './components/SupabaseGuard';
 
-// Carga diferida (Lazy Loading) — cada página se descarga sólo cuando se visita
-const Home = lazy(() => import('./pages/Home'));
-const RequestHelp = lazy(() => import('./pages/RequestHelp'));
-const Donate = lazy(() => import('./pages/Donate'));
-const PrioridadesAdmin = lazy(() => import('./components/admin/PrioridadesAdmin'));
-const BandejaAdmin = lazy(() => import('./components/admin/BandejaAdmin'));
+import Home from './pages/Home';
+import RequestHelp from './pages/RequestHelp';
+import Donate from './pages/Donate';
+import PrioridadesAdmin from './components/admin/PrioridadesAdmin';
+import BandejaAdmin from './components/admin/BandejaAdmin';
 
 // Indicador de carga mostrado mientras se descarga el chunk correspondiente
 function LoadingFallback() {

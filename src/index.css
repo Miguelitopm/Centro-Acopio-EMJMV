@@ -57,6 +57,12 @@ html::before {
   background: rgba(251, 249, 246, 0.72); /* mismo color que --color-background con opacidad */
   pointer-events: none;
   z-index: 0;
+  transition: opacity 0.2s ease;
+}
+
+/* En el panel administrativo, ocultamos el overlay del fondo de la web pública */
+html.admin-page::before {
+  opacity: 0;
 }
 
 body {
@@ -65,6 +71,12 @@ body {
   color: var(--color-on-background);
   overscroll-behavior: none;
   min-height: 100%;
+}
+
+/* En el panel administrativo, restauramos un fondo sólido y limpio */
+html.admin-page,
+html.admin-page body {
+  background-color: var(--color-background);
 }
 
 /* Iconos Material Symbols reemplazados por lucide-react (SVG, sin descarga de fuente externa) */
