@@ -124,3 +124,7 @@ CREATE POLICY "Solicitudes lectura admin"
 DROP POLICY IF EXISTS "Solicitudes actualización admin" ON solicitudes;
 CREATE POLICY "Solicitudes actualización admin"
   ON solicitudes FOR UPDATE USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Solicitudes borrado admin" ON solicitudes;
+CREATE POLICY "Solicitudes borrado admin"
+  ON solicitudes FOR DELETE USING (true);
