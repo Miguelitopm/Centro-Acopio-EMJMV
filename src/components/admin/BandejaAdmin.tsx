@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Search, Package, Truck, Loader2, AlertCircle, Archive, Clock } from 'lucide-react';
+import { Search, Package, Truck, Loader2, AlertCircle, Archive, Clock, Trash2 } from 'lucide-react';
 import { requireSupabase } from '../../lib/supabase';
 import type { Solicitud, InsumoItem } from '../../types/database';
 import EstadoBadge, { getRowBorderClass } from './EstadoBadge';
@@ -109,6 +109,27 @@ export default function BandejaAdmin() {
     setEntregaModal(null);
   };
 
+  const handleDelete = async (id: string, ticketNumber: string) => {
+    const confirmDelete = window.confirm(`¿Estás seguro de que deseas borrar la solicitud ${ticketNumber}? Esta acción no se puede deshacer y se eliminará permanentemente de la base de datos.`);
+    if (!confirmDelete) return;
+
+    try {
+      setError(null);
+      const { error: deleteError } = await requireSupabase()
+        .from('solicitudes')
+        .delete()
+        .eq('id', id);
+
+      if (deleteError) throw deleteError;
+
+      // Update state immediately
+      setSolicitudes((prev) => prev.filter((s) => s.id !== id));
+    } catch (err: any) {
+      console.error('Error deleting solicitud:', err);
+      setError(err instanceof Error ? err.message : 'Error al borrar la solicitud');
+    }
+  };
+
   if (loading) return <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
 
   return (
@@ -203,6 +224,19 @@ export default function BandejaAdmin() {
                   {s.estado === 'armado' && (
                     <button onClick={() => setEntregaModal(s)} className="flex items-center justify-center gap-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white rounded-xl font-bold uppercase text-xs tracking-widest shadow-md">
                       <Truck className="w-4 h-4" /> Procesar Entrega
+                    </button>
+                  )}
+                  {s.estado === 'armado' && (
+                    <button onClick={() => setArmarModal(s)} className="flex items-center justify-center gap-2 px-6 py-2.5 bg-yellow-500 hover:bg-yellow-600 text-white rounded-xl font-bold uppercase text-xs tracking-widest shadow-sm transition-colors">
+                      <Package className="w-4 h-4" /> Editar Solicitud
+                    </button>
+                  )}
+                  {(s.estado === 'pendiente' || s.estado === 'armado') && (
+                    <button
+                      onClick={() => handleDelete(s.id, s.ticket_number)}
+                      className="flex items-center justify-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-xl font-bold uppercase text-xs tracking-widest shadow-sm transition-colors"
+                    >
+                      <Trash2 className="w-4 h-4" /> Borrar Solicitud
                     </button>
                   )}
                 </div>
